@@ -28,6 +28,15 @@ All you have to do is download and include `thvxt-assistant.js` and `thxt-assist
     <script src="thvxt-assistant.js"></script>
 ```
 
+Or link to the files directly:
+
+```html
+    <!-- Css-->
+    <link rel="stylesheet" href="https://raw.githubusercontent.com/thavixt/thvxt-assistant/master/css/thvxt-assistant.css">
+    <!-- Javascript -->
+    <script src="https://raw.githubusercontent.com/thavixt/thvxt-assistant/master/js/thvxt-assistant.js"></script>
+```
+
 The *Google Maps Javascript API* is an optional dependency. It's used for some default *skills*, but the plugin will work without it.
 
 Create an instance of Assistant:
