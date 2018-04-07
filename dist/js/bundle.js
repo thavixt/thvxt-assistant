@@ -246,13 +246,13 @@ class Assistant {
                 <form id="${this.config.elements.inputForm}" class="thvxt-chat-inputForm">
                     <input id="${this.config.elements.userInput}" type="text" placeholder="Type a message" autocomplete="off" />
                     <button id="${this.config.elements.sendButton}" type="submit">
-                        <img src="/assets/svg/send.svg">
+                        <img src="assets/svg/send.svg">
                     </button>
                     <button id="${this.config.elements.recordButton}">
-                        <img src="/assets/svg/microphone.svg">
+                        <img src="assets/svg/microphone.svg">
                     </button>
                     <button id="${this.config.elements.settingsButton}">
-                        <img src="/assets/svg/settings.svg">
+                        <img src="assets/svg/settings.svg">
                     </button>
                 </form>
             </div>`);
