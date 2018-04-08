@@ -60,8 +60,13 @@
         <em>skills</em>, but the plugin will work without it.</p>
 
     <p>Create an instance of Assistant:</p>
-    <pre class="prettyprint javascript language-javascript">const assistant = new Assistant(root, config, skill);
-    
+    <pre class="prettyprint javascript language-javascript">// Generally: 
+const assistant = new Assistant(id, config, skills);
+
+// With default configuration, just provide the id of your root div element:
+// (You'll have to create that div element in your HTML markup!)
+const assistant = new Assistant("my-container-id")
+
 // Or in a bit more detail:
 const assistant = new Assistant(
     // Root div ID (the only required parameter)
@@ -99,7 +104,7 @@ const assistant = new Assistant(
             // 0 will always be the device/OS default voice
             voice: 0,  // default
         },
-        // Element IDs (default, use anything for custom CSS)
+        // Element IDs (defaults, use anything for custom CSS)
         elements: {
             thinker: "my-chat-thinker",
             messageList: "my-chat-messagelist",
@@ -114,12 +119,14 @@ const assistant = new Assistant(
             voiceVolume: "my-chat-voiceVolume",
             voiceRate: "my-chat-voiceRate"
         },
-        // CSS selectors for animation (default, use anything for custom animations)
+        // CSS selectors for animation 
+        // (default, use anything for custom animations)
         animations: { 
             userMessage: "revealUser", 
             assistantMessage: "revealAssistant" 
         }, 
-        // Enable saving to and loading the settings from LocalStorage (default) 
+        // Enable saving to and loading the settings 
+        // from LocalStorage automatically (default) 
         persistSettings: true,
     },
     // Array of predefined skill the Assistant is able to use

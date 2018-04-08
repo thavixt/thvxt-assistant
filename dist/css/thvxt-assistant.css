@@ -99,6 +99,11 @@
     padding: 0.5em 1em;
 }
 
+.thvxt-chat-messageList>.message img {
+    width: 100%;
+    height: auto;
+}
+
 .thvxt-chat-messageList>.message>.arrow {
     width: 0;
     height: 0;
