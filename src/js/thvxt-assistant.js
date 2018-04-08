@@ -39,7 +39,7 @@ class Assistant {
             speech: {
                 enabled: true,
                 rate: 1,
-                volume: 1,
+                volume: 0.35,
                 // Set the first as default voice (usually device/OS dependent, not browser)
                 voice: 0,
             },
@@ -54,6 +54,7 @@ class Assistant {
                 recordButton: "thvxt-chat-record",
                 settingsButton: "thvxt-chat-settings",
                 settingsDiv: "thvxt-chat-settingsContainer",
+                voiceToggle: "thvxt-chat-voiceToggle",
                 voiceSelect: "thvxt-chat-voiceSelect",
                 voiceVolume: "thvxt-chat-voiceVolume",
                 voiceRate: "thvxt-chat-voiceRate"
@@ -80,6 +81,7 @@ class Assistant {
         // Speech Synthetizer and available voices to choose from
         this.synth = window.speechSynthesis;
         this.voices = [];
+        this.initialized = false;
     }
 
     /**
@@ -87,6 +89,9 @@ class Assistant {
      * @memberof Assistant
      */
     init() {
+        if (this.initialized) {
+            return true;
+        }
         //console.log("Initializing assistant");
         // Attempt to load any saved settings from LocalStorage
         if (this.config.persistSettings) {
@@ -108,6 +113,11 @@ class Assistant {
                     <div id="${this.config.elements.settingsDiv}" class="thvxt-chat-settings">
                         <h2>Settings</h2>
                         <div>
+                            <h3>Speech Synthesis</h3>
+                            <span>Enabled</span>
+                            <input id="${this.config.elements.voiceToggle}" class="thvxt-chat-voiceToggle" type="checkbox" ${this.config.speech.enabled ? "checked" : ""}>
+                        </div>
+                        <div>
                             <h3>Voice</h3>
                             <select id="${this.config.elements.voiceSelect}" class="thvxt-chat-voiceSelect">
                                 <option default selected>-- loading .. --</selected>
@@ -115,13 +125,13 @@ class Assistant {
                         </div>
                         <div>
                             <h3>Speech volume</h3>
-                            <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value=${this.config.speech.volume}" 
-                                min="0" max="2" step="0.1">
+                            <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value="${this.config.speech.volume}" 
+                                min="0" max="1" step="0.05">
                         </div>
                         <div>
                             <h3>Speech rate</h3>
                             <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
-                                min="0.5" max="1.5" step="0.1">
+                                min="0.1" max="4" step="0.05">
                         </div>
                         <hr class="thvxt-chat-settings-divider">
                         <div class="thvxt-chat-credits">
@@ -135,13 +145,13 @@ class Assistant {
                 <form id="${this.config.elements.inputForm}" class="thvxt-chat-inputForm">
                     <input id="${this.config.elements.userInput}" type="text" placeholder="Type a message" autocomplete="off" />
                     <button id="${this.config.elements.sendButton}" type="submit">
-                        <img src="assets/svg/send.svg">
+                        <img src="assets/send.svg">
                     </button>
                     <button id="${this.config.elements.recordButton}">
-                        <img src="assets/svg/microphone.svg">
+                        <img src="assets/microphone.svg">
                     </button>
                     <button id="${this.config.elements.settingsButton}">
-                        <img src="assets/svg/settings.svg">
+                        <img src="assets/settings.svg">
                     </button>
                 </form>
             </div>`);
@@ -154,7 +164,7 @@ class Assistant {
         setInterval(this.updateLocation.bind(this), 60000);
 
 
-        // User input submit
+        // Chat window open/close toggle
         document.getElementById(this.config.elements.header)
             .addEventListener("click", this.toggleFrame.bind(this));
 
@@ -165,8 +175,19 @@ class Assistant {
         document.getElementById(this.config.elements.userInput)
             .addEventListener("keydown", this.useInputHistory.bind(this));
 
+
+        // User input - recording
+        document.getElementById(this.config.elements.recordButton)
+            .addEventListener("click", (e) => {
+                e.preventDefault();
+                this.reply({
+                    text: "Sorry, I have no ears - yet.",
+                    extra: "(My developer is working on it!)"
+                });
+            });
+
         // Wait for the Speech Synthetizer to load
-        window.speechSynthesis.onvoiceschanged = () => {
+        this.synth.onvoiceschanged = () => {
             // Get all available voices from the Synthetizer
             this.voices = this.synth.getVoices();
             // Clear voice select list
@@ -186,16 +207,27 @@ class Assistant {
                 let target = e.target;
                 this.config.speech.voice = target.options[target.selectedIndex].dataset.index;
             });
+            // Welcome message if defined
+            if (!this.initialized && this.config.welcome) {
+                this.reply(this.config.welcome);
+            }
+            // Finished initializing the synthesizer
+            this.initialized = true;
         };
+        // Speech synthesis enable/disable toggle
+        document.getElementById(this.config.elements.voiceToggle).addEventListener("change", (e) => {
+            let target = e.target;
+            this.config.speech.enabled = target.checked;
+        });
         // Speech volume change handler
         document.getElementById(this.config.elements.voiceVolume).addEventListener("change", (e) => {
             let target = e.target;
-            this.config.speech.volume = target.value;
+            this.config.speech.volume = parseFloat(target.value);
         });
         // Speech rate change handler
         document.getElementById(this.config.elements.voiceRate).addEventListener("change", (e) => {
             let target = e.target;
-            this.config.speech.rate = target.value;
+            this.config.speech.rate = parseFloat(target.value);
         });
 
         // Toggle settings div
@@ -210,18 +242,16 @@ class Assistant {
                 if (isSettingsOpen) {
                     settingsDiv.classList.remove("show");
                     messageList.classList.remove("hide");
-                    this.enableInput(true);
+                    if (!this.currentlyThinking) {
+                        this.enableInput(true);
+                    }
                 } else {
                     this.enableInput(false);
                     settingsDiv.classList.add("show");
                     messageList.classList.add("hide");
                 }
             });
-
-        // Welcome message
-        if (this.config.welcome) {
-            this.reply(this.config.welcome);
-        }
+        return true;
     }
 
 
@@ -237,9 +267,10 @@ class Assistant {
             return false;
         } else {
             this.config.speech = {
-                ...loadedConfig,
-                // Set speech volume to 0 if the provided config disabled speech initially
-                volume: this.config.speech.enabled ? loadedConfig.enabled : 0
+                enabled: loadedConfig.enabled,
+                voice: parseInt(loadedConfig.voice),
+                volume: parseFloat(loadedConfig.volume),
+                rate: parseFloat(loadedConfig.rate),
             };
             //console.log("Settings loaded from a previous session.");
             return true;
@@ -642,7 +673,9 @@ class Assistant {
             }
 
             // Set input value
-            input.value = futureValue;
+            if (futureValue) {
+                input.value = futureValue;
+            }
         }
     }
 }

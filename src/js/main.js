@@ -27,14 +27,15 @@
                 recordButton: "my-chat-record",
                 settingsButton: "my-chat-settings",
                 settingsDiv: "my-chat-settingsContainer",
+                voiceToggle: "my-chat-voiceToggle",
                 voiceSelect: "my-chat-voiceSelect",
                 voiceVolume: "my-chat-voiceVolume",
                 voiceRate: "my-chat-voiceRate"
             },
             speech: {
-                enabled: false,
-                rate: 1.2,
-                volume: 0.8,
+                enabled: true,
+                rate: 0.8,
+                volume: 0.2,
                 voice: 0, // 0 is the OS/device default
             },
             // Enable saving and loading the settings from the browser
