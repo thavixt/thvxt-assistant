@@ -265,7 +265,7 @@ class Assistant {
                         <div>
                             <h3>Speech rate</h3>
                             <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
-                                min="0.1" max="4" step="0.05">
+                                min="0.1" max="2" step="0.05">
                         </div>
                         <hr class="thvxt-chat-settings-divider">
                         <div class="thvxt-chat-credits">
