@@ -1,14 +1,50 @@
 /* Wrapper */
 
 .thvxt-chat-frame {
+    font-size: 16px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: whitesmoke;
     color: rgba(0, 0, 0, 0.7);
-    height: 100%;
     display: flex;
     flex-direction: column;
     z-index: 1000;
+    padding: 0 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px 20px 0 0;
+}
+
+.thvxt-chat-frame.minimized {
+    display: block;
+    width: 100%;
+    height: initial;
+    /* stick to the bottom of the container */
+    position: absolute;
+    bottom: 0;
+}
+
+.thvxt-chat-frame.minimized>*:first-child {}
+
+.thvxt-chat-frame.minimized>*:not(:first-child) {
+    display: none;
+}
+
+/* Header */
+
+.thvxt-chat-header {
     padding: 0.5em;
+    text-align: center;
+    font-weight: bold;
+    background-color: #ebebeb;
+    cursor: pointer;
+    border-radius: 20px 20px 0 0;
+}
+
+/* Content */
+
+.thvxt-chat-content {
+    min-width: 100%;
+    height: 100%;
 }
 
 /* Messagelist */
@@ -18,11 +54,13 @@
     overflow-y: auto;
     overflow-x: hidden;
     max-width: 100%;
-    max-height: 100vh;
-    /* padding: 0.5em 1em 0 1em; */
-    /* padding: 0em 1em; */
-    /* fill remaining space */
-    flex: 1;
+    max-height: 100%;
+    padding: 0.5em 1em 0 1em;
+    margin-bottom: -5em;
+}
+
+.thvxt-chat-messageList.hide {
+    display: none;
 }
 
 .thvxt-chat-messageList .message {
@@ -32,12 +70,12 @@
 
 .thvxt-chat-messageList>.message.assistant {
     flex-direction: row;
-    margin-right: 2em;
+    margin-right: 1em;
 }
 
 .thvxt-chat-messageList>.message.user {
     flex-direction: row-reverse;
-    margin-left: 2em;
+    margin-left: 1em;
 }
 
 .thvxt-chat-messageList>.message>.image {
@@ -85,13 +123,18 @@
 }
 
 .thvxt-chat-messageList>.message>.text>p {
+    margin: 0;
+    padding: 0;
     display: block;
 }
 
 .thvxt-chat-messageList>.message>.text>small {
+    margin: 0;
+    padding: 0;
     display: block;
     margin-top: 0.5em;
-    font-style: italic;
+    font-size: 0.7em;
+    font-weight: 200;
 }
 
 .thvxt-chat-messageList>.message.assistant.revealAssistant {
@@ -106,31 +149,26 @@
     animation-iteration-count: 1;
 }
 
-/* .thvxt-chat-frame .message.thinker {
-    font-style: italic;
-} */
-
 /* Bottom input area & buttons */
 
 .thvxt-chat-inputForm {
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
     bottom: 0;
     height: 3em;
     width: 100%;
-    z-index: 1099;
-    background-color: whitesmoke;
+    align-items: center;
 }
 
 .thvxt-chat-inputForm>* {
-    height: 2.5em;
+    height: 2em;
 }
 
 .thvxt-chat-inputForm>input {
     width: 100%;
     display: inline-block;
     padding: 0.5em;
-    margin: 0.5em;
+    margin: 0 0.5em;
     border: none;
     border-radius: 5px;
     background-color: white;
@@ -146,7 +184,7 @@
 .thvxt-chat-inputForm>button {
     display: inline-block;
     padding: 0.5em;
-    margin: 0.5em;
+    margin: 0 0.5em;
     border: none;
     border-radius: 5px;
     background-color: #d2d2d2;
@@ -163,7 +201,7 @@
 }
 
 .thvxt-chat-inputForm>button>img {
-    height: 1.5em;
+    height: 1em;
     width: auto;
 }
 
@@ -202,33 +240,34 @@
 /* Chat settings */
 
 .thvxt-chat-settings {
-    position: relative;
-    height: 0%;
-    padding: 0em 0.5em;
+    display: none;
     overflow-y: auto;
-    z-index: 101;
-    opacity: 1;
-    transition: opacity 0.2s ease-in-out;
+    overflow-x: hidden;
+    max-width: 100%;
+    max-height: 100%;
+    padding: 0em 1em;
+    flex: 1;
+    margin-bottom: -5em;
+    padding-top: 1em;
+}
+
+.thvxt-chat-settings>h2 {
+    margin: 0;
+    padding: 0;
 }
 
 .thvxt-chat-settings.show {
-    height: 95%;
-    opacity: 1;
+    display: block;
 }
 
 .thvxt-chat-settings>div {
     padding: 1em;
+    margin: 0;
 }
 
 .thvxt-chat-settings a {
     color: rgba(0, 0, 0, 0.7);
-    /* text-decoration: none; */
     font-weight: bolt;
-}
-
-.thvxt-chat-settings a:hover,
-.thvxt-chat-settings a:visited {
-    padding: 1em;
 }
 
 .thvxt-chat-voiceSelect,
@@ -236,6 +275,17 @@
 .thvxt-chat-voiceRate {
     width: 13em;
     padding: 5px;
+}
+
+/* Credits */
+
+.thvxt-chat-settings-divider {
+    margin: 1em;
+}
+
+.thvxt-chat-credits {
+    text-align: center;
+    padding: 1em;
 }
 
 /* Thinker animation */

@@ -5,7 +5,7 @@ const skills = [
         resolver: (self, match, sentence) => new Promise((resolve) => {
             resolve({
                 text: `'${match[1]}'`,
-                extra: "",
+                extra: `<a href="https://en.wikipedia.org/wiki/Simon_Says" target="_blank">Simon Says - Wikipedia</a>`,
                 success: true,
             });
         })
@@ -90,22 +90,30 @@ const skills = [
                 let size = "200x200";
                 let img = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&sensor=false&markers=color:blue%7Clabel:You%7C${latitude},${longitude}&key=AIzaSyAeDB_rnFeP2e19E98PD934sjURcGdEwNo`;
                 let mapUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&zoom=${zoom + 2}`;
-                let geocoder = new google.maps.Geocoder;
-                let result = geocoder.geocode({
-                    'location': {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    }
-                }, (results, status) => {
-                    let address = "Sorry, I couldn't find your address.";
-                    if (status === 'OK' && results[0]) {
-                        address = "You are at " + results[0].formatted_address;
-                    }
+                if ('google' in window && google.maps.Geocoder) {
+                    let geocoder = new google.maps.Geocoder;
+                    let result = geocoder.geocode({
+                        'location': {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        }
+                    }, (results, status) => {
+                        let address = "Sorry, I couldn't find your address.";
+                        if (status === 'OK' && results[0]) {
+                            address = "You are at " + results[0].formatted_address;
+                        }
+                        resolve({
+                            text: `${address}`,
+                            extra: `<br><a href=${mapUrl} target="_blank"><img src="${img}" /></a><br><small>Click to open Google Maps</small>`
+                        });
+                    });
+                }
+                else {
                     resolve({
-                        text: `${address}`,
+                        text: `You are here:`,
                         extra: `<br><a href=${mapUrl} target="_blank"><img src="${img}" /></a><br><small>Click to open Google Maps<small>`
                     });
-                });
+                }
             }
             function error() {
                 resolve({
@@ -170,7 +178,7 @@ const skills = [
             let searchTerm = match[1];
             setTimeout(() => window.open('https://open.spotify.com/search/results/' + searchTerm), 1000);
             resolve({
-                text: `Alright, let me Google '${searchTerm}'.`,
+                text: `Alright, let me search Spotify for '${searchTerm}'.`,
                 extra: ""
             });
         })
@@ -180,7 +188,10 @@ class Assistant {
     constructor(root = "assistant-frame", options = {}, skills = []) {
         this.root = root;
         this.config = Object.assign({ name: "Leah", response: {
-                text: "I don't know what to say :(",
+                text: "Sorry, I don't know what to say. :(",
+                extra: "",
+            }, welcome: {
+                text: `Hi, ask me anything!`,
                 extra: "",
             }, delay: 500, speech: {
                 enabled: true,
@@ -188,6 +199,7 @@ class Assistant {
                 volume: 1,
                 voice: 0,
             }, elements: {
+                header: "thvxt-chat-header",
                 thinker: "thvxt-chat-thinker",
                 messageList: "thvxt-chat-messagelist",
                 inputForm: "thvxt-chat-inputarea",
@@ -202,7 +214,7 @@ class Assistant {
             }, animations: {
                 userMessage: "revealUser",
                 assistantMessage: "revealAssistant"
-            } }, options);
+            }, persistSettings: true }, options);
         this.skills = [...skills];
         this.currentlyThinking = false;
         this.previousInputs = {
@@ -213,34 +225,45 @@ class Assistant {
         this.location = null;
         this.synth = window.speechSynthesis;
         this.voices = [];
-        this.selectedVoice = 0;
     }
     init() {
+        if (this.config.persistSettings) {
+            this.loadSettings();
+            window.addEventListener("beforeunload", (e) => {
+                this.saveSettings();
+            });
+        }
         let chatFrame = this.parseHTML(`<div class="thvxt-chat-frame">
-                <ul id="${this.config.elements.messageList}" class="thvxt-chat-messageList"></ul>
-                <div id="${this.config.elements.settingsDiv}" class="thvxt-chat-settings">
-                    <h2>Settings</h2>
-                    <div>
-                        <h3>Voice</h3>
-                        <select id="${this.config.elements.voiceSelect}" class="thvxt-chat-voiceSelect">
-                            <option default selected>-- loading .. --</selected>
-                        </select>
-                    </div>
-                    <div>
-                        <h3>Speech volume</h3>
-                        <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value=${this.config.speech.volume}" 
-                            min="0" max="2" step="0.1">
-                    </div>
-                    <div>
-                        <h3>Speech rate</h3>
-                        <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
-                            min="0.5" max="1.5" step="0.1">
-                    </div>
-                    <div>
-                        <p>Made by <a href="https://github.com/thavixt" target="_blank">thavixt@github</a>.<p>
-                        <small>2018 &copy; Komlósi Péter</small>
-                        <br><br>
-                        <p>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> and <a href="https://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>, licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.</p>
+                <div class="thvxt-chat-header" id="${this.config.elements.header}">
+                    Your assistant - ${this.config.name}
+                </div>
+                <div class="thvxt-chat-content">
+                    <ul id="${this.config.elements.messageList}" class="thvxt-chat-messageList"></ul>
+                    <div id="${this.config.elements.settingsDiv}" class="thvxt-chat-settings">
+                        <h2>Settings</h2>
+                        <div>
+                            <h3>Voice</h3>
+                            <select id="${this.config.elements.voiceSelect}" class="thvxt-chat-voiceSelect">
+                                <option default selected>-- loading .. --</selected>
+                            </select>
+                        </div>
+                        <div>
+                            <h3>Speech volume</h3>
+                            <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value=${this.config.speech.volume}" 
+                                min="0" max="2" step="0.1">
+                        </div>
+                        <div>
+                            <h3>Speech rate</h3>
+                            <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
+                                min="0.5" max="1.5" step="0.1">
+                        </div>
+                        <hr class="thvxt-chat-settings-divider">
+                        <div class="thvxt-chat-credits">
+                            <p>Made by <a href="https://github.com/thavixt" target="_blank">thavixt@github</a>.<p>
+                            <small>2018 &copy; Komlósi Péter</small>
+                            <br><br>
+                            <p>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> and <a href="https://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>,<br>licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.</p>
+                        </div>
                     </div>
                 </div>
                 <form id="${this.config.elements.inputForm}" class="thvxt-chat-inputForm">
@@ -256,9 +279,13 @@ class Assistant {
                     </button>
                 </form>
             </div>`);
-        document.getElementById(this.root).appendChild(chatFrame);
+        let root = document.getElementById(this.root);
+        root.innerHTML = "";
+        root.appendChild(chatFrame);
         this.updateLocation();
         setInterval(this.updateLocation.bind(this), 60000);
+        document.getElementById(this.config.elements.header)
+            .addEventListener("click", this.toggleFrame.bind(this));
         document.getElementById(this.config.elements.inputForm)
             .addEventListener("submit", this.handleInput.bind(this));
         document.getElementById(this.config.elements.userInput)
@@ -267,7 +294,7 @@ class Assistant {
             this.voices = this.synth.getVoices();
             let selectList = document.getElementById(this.config.elements.voiceSelect);
             selectList.innerHTML = "";
-            let currentIndex = this.selectedVoice;
+            let currentIndex = this.config.speech.voice;
             this.voices.map((el, i) => {
                 let selected = (i == currentIndex) ? "selected" : "";
                 let option = this.parseHTML(`<option ${selected} data-index="${i}">${el.name}</option>`);
@@ -275,7 +302,7 @@ class Assistant {
             });
             selectList.addEventListener("change", (e) => {
                 let target = e.target;
-                this.selectedVoice = target.options[target.selectedIndex].dataset.index;
+                this.config.speech.voice = target.options[target.selectedIndex].dataset.index;
             });
         };
         document.getElementById(this.config.elements.voiceVolume).addEventListener("change", (e) => {
@@ -289,17 +316,36 @@ class Assistant {
         document.getElementById(this.config.elements.settingsButton)
             .addEventListener("click", (e) => {
             let settingsDiv = document.getElementById(this.config.elements.settingsDiv);
+            let messageList = document.getElementById(this.config.elements.messageList);
             let isSettingsOpen = document.getElementById(this.config.elements.settingsDiv)
                 .classList.contains("show");
             if (isSettingsOpen) {
                 settingsDiv.classList.remove("show");
+                messageList.classList.remove("hide");
                 this.enableInput(true);
             }
             else {
                 this.enableInput(false);
                 settingsDiv.classList.add("show");
+                messageList.classList.add("hide");
             }
         });
+        if (this.config.welcome) {
+            this.reply(this.config.welcome);
+        }
+    }
+    loadSettings() {
+        let loadedConfig = JSON.parse(localStorage.getItem('thvxt-assistant'));
+        if (!loadedConfig) {
+            return false;
+        }
+        else {
+            this.config.speech = Object.assign({}, loadedConfig, { volume: this.config.speech.enabled ? loadedConfig.enabled : 0 });
+            return true;
+        }
+    }
+    saveSettings() {
+        localStorage.setItem('thvxt-assistant', JSON.stringify(this.config.speech));
     }
     getTime() {
         let date = new Date();
@@ -323,6 +369,22 @@ class Assistant {
             maximumAge: 60000
         });
     }
+    toggleFrame() {
+        let frame = document.getElementsByClassName("thvxt-chat-frame")[0];
+        let isFrameMinimized = frame.classList.contains("minimized");
+        if (isFrameMinimized) {
+            document.getElementById(this.root).style.maxHeight = "initial";
+            frame.classList.remove("minimized");
+            this.enableInput(true);
+        }
+        else {
+            document.getElementById(this.config.elements.settingsDiv).classList.remove("show");
+            document.getElementById(this.config.elements.messageList).classList.remove("hide");
+            this.enableInput(false);
+            document.getElementById(this.root).style.maxHeight = "2em";
+            frame.classList.add("minimized");
+        }
+    }
     enableInput(bool) {
         if (typeof bool === "undefined") {
             return !document.getElementById(this.config.elements.userInput).disabled;
@@ -330,7 +392,6 @@ class Assistant {
         document.getElementById(this.config.elements.userInput).disabled = !bool;
         document.getElementById(this.config.elements.sendButton).disabled = !bool;
         document.getElementById(this.config.elements.recordButton).disabled = !bool;
-        document.getElementById(this.config.elements.userInput).focus();
         return bool;
     }
     handleInput(e) {
@@ -347,7 +408,6 @@ class Assistant {
         return this.process(inputText)
             .then(reply => {
             this.thinking(false);
-            this.addAssistantReply(reply);
             this.enableInput(true);
         });
     }
@@ -391,7 +451,7 @@ class Assistant {
         }
         return false;
     }
-    process(sentence) {
+    process(sentence, justReturn) {
         this.previousInputs.history.unshift(sentence);
         if (this.previousInputs.history.length > 10) {
             this.previousInputs.history.pop();
@@ -402,15 +462,26 @@ class Assistant {
                 let delay = skill.delay || this.config.delay;
                 return skill.resolver(this, match, sentence)
                     .then((result) => new Promise(resolve => setTimeout(() => resolve(result), delay)))
-                    .then((response) => this.reply(Object.assign({ success: true }, response, { matchedSkill: skill, default: false })));
+                    .then((response) => {
+                    if (justReturn) {
+                        return Object.assign({ success: true }, response, { matchedSkill: skill, default: false });
+                    }
+                    else {
+                        this.reply(Object.assign({ success: true }, response, { matchedSkill: skill, default: false }));
+                    }
+                });
             }
         }
         let defaultReply = Object.assign({}, this.config.response, { success: false, default: true });
-        return new Promise(resolve => setTimeout(() => resolve(this.reply(defaultReply)), this.config.delay));
-        return this.reply(defaultReply);
+        if (justReturn) {
+            return new Promise(resolve => resolve(defaultReply));
+        }
+        else {
+            return new Promise(resolve => setTimeout(() => resolve(this.reply(defaultReply)), this.config.delay));
+        }
     }
     reply(response) {
-        let sentence = response.text;
+        this.addAssistantReply(response);
         if (this.config.speech.enabled) {
             this.speak(response.text);
         }
@@ -425,7 +496,7 @@ class Assistant {
         const msg = new SpeechSynthesisUtterance(filtered);
         msg.volume = this.config.speech.volume;
         msg.rate = this.config.speech.rate;
-        msg.voice = this.voices[this.selectedVoice];
+        msg.voice = this.voices[this.config.speech.voice];
         setTimeout(() => {
             window.speechSynthesis.speak(msg);
         }, 100);
@@ -459,7 +530,7 @@ class Assistant {
         msgList.appendChild(newMsg);
         msgList.scrollTop = msgList.scrollHeight;
         setTimeout(() => {
-            newMsg.classList.remove(this.config.animations.assistantMessage);
+            newMsg.classList.remove(this.config.animations.userMessage);
         }, 500);
     }
     useInputHistory(e) {
@@ -488,28 +559,35 @@ class Assistant {
         }
     }
 }
-const assistant = new Assistant("chat-container", {
-    name: "Emma",
-    elements: {
-        thinker: "my-chat-thinker",
-        messageList: "my-chat-messagelist",
-        inputForm: "my-chat-inputarea",
-        userInput: "my-chat-type",
-        sendButton: "my-chat-send",
-        recordButton: "my-chat-record",
-        settingsButton: "my-chat-settings",
-        settingsDiv: "my-chat-settingsContainer",
-        voiceSelect: "my-chat-voiceSelect",
-        voiceVolume: "my-chat-voiceVolume",
-        voiceRate: "my-chat-voiceRate"
-    },
-    speech: {
-        enabled: true,
-        rate: 1.2,
-        volume: 0.8,
-        voice: 0,
-    },
-}, [...skills]);
-assistant.init();
-console.log("Assistant: ", assistant);
+(function () {
+    const assistant = new Assistant("chat-container", {
+        name: "Emma",
+        welcome: {
+            text: `Hi, I'm ready to answer your questions!`,
+            extra: "",
+        },
+        elements: {
+            header: "my-chat-header",
+            thinker: "my-chat-thinker",
+            messageList: "my-chat-messagelist",
+            inputForm: "my-chat-inputarea",
+            userInput: "my-chat-type",
+            sendButton: "my-chat-send",
+            recordButton: "my-chat-record",
+            settingsButton: "my-chat-settings",
+            settingsDiv: "my-chat-settingsContainer",
+            voiceSelect: "my-chat-voiceSelect",
+            voiceVolume: "my-chat-voiceVolume",
+            voiceRate: "my-chat-voiceRate"
+        },
+        speech: {
+            enabled: false,
+            rate: 1.2,
+            volume: 0.8,
+            voice: 0,
+        },
+        persistSettings: true
+    }, [...skills]);
+    assistant.init();
+})();
 //# sourceMappingURL=bundle.js.map

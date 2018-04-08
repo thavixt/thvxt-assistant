@@ -6,18 +6,56 @@
     margin: 0;
 }
 
-html,
+html {}
+
 body {
     height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: white;
+    color: rgba(0, 0, 0, 0.7);
+    padding: 1em;
+    max-width: 720px;
+    margin: auto;
 }
 
-#chat-container {
+header {
+    margin-bottom: 1em;
+}
+
+h2 {
+    margin-top: 2em;
+}
+
+p {
+    margin: 1.5em 0 1em 0;
+}
+
+ul {
+    padding: 0 0 0 3em;
+}
+
+pre {
+    overflow: auto !important;
+    padding: 0.5em !important;
+    font-family: monospace;
+}
+
+code {
+    padding: 2px 3px;
+    font-family: monospace;
+}
+
+pre>code {
     padding: 0;
-    margin: 0;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    /* cover the whole page */
+}
+
+/* Assistant positioning */
+
+#chat-container {
+    width: 20em;
+    height: 30em;
     position: fixed;
+    bottom: 0%;
+    right: 0%;
+    margin-right: 4px;
 }

@@ -9,7 +9,7 @@ const skills = [
             // The resolved object must containt a string response (text) and an extra string (extra) with any other data
             resolve({
                 text: `'${match[1]}'`, // Required - response text to send back
-                extra: "", // Optional - any valid HTML, can include links, images, video, etc
+                extra: `<a href="https://en.wikipedia.org/wiki/Simon_Says" target="_blank">Simon Says - Wikipedia</a>`, // Optional - any valid HTML, can include links, images, video, etc
                 success: true, // Optional - only required if you don't get the expected result ('false' in that case)
             });
         })
@@ -105,24 +105,33 @@ const skills = [
                 let size = "200x200";
                 let img = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&sensor=false&markers=color:blue%7Clabel:You%7C${latitude},${longitude}&key=AIzaSyAeDB_rnFeP2e19E98PD934sjURcGdEwNo`;
                 let mapUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&zoom=${zoom+2}`;
-                // Geocode the street adress from the coords
-                let geocoder = new google.maps.Geocoder;
-                let result = geocoder.geocode({
-                    'location': {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    }
-                }, (results, status) => {
-                    let address = "Sorry, I couldn't find your address.";
-                    //console.log(results);
-                    if (status === 'OK' && results[0]) {
-                        address = "You are at " + results[0].formatted_address;
-                    }
+
+                if ('google' in window && google.maps.Geocoder) {
+                    // Geocode the street adress from the coords
+                    let geocoder = new google.maps.Geocoder;
+                    let result = geocoder.geocode({
+                        'location': {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        }
+                    }, (results, status) => {
+                        let address = "Sorry, I couldn't find your address.";
+                        //console.log(results);
+                        if (status === 'OK' && results[0]) {
+                            address = "You are at " + results[0].formatted_address;
+                        }
+                        resolve({
+                            text: `${address}`,
+                            extra: `<br><a href=${mapUrl} target="_blank"><img src="${img}" /></a><br><small>Click to open Google Maps</small>`
+                        });
+                    });
+                } else {
+                    // Google Maps Geocoding is not provided
                     resolve({
-                        text: `${address}`,
+                        text: `You are here:`,
                         extra: `<br><a href=${mapUrl} target="_blank"><img src="${img}" /></a><br><small>Click to open Google Maps<small>`
                     });
-                });
+                }
             }
 
             function error() {
@@ -196,7 +205,7 @@ const skills = [
             let searchTerm = match[1];
             setTimeout(() => window.open('https://open.spotify.com/search/results/' + searchTerm), 1000);
             resolve({
-                text: `Alright, let me Google '${searchTerm}'.`,
+                text: `Alright, let me search Spotify for '${searchTerm}'.`,
                 extra: ""
             });
         })

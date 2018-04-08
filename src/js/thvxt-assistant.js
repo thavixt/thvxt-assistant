@@ -18,24 +18,34 @@ class Assistant {
      * @memberof Assistant
      */
     constructor(root = "assistant-frame", options = {}, skills = []) {
-        this.root = root;
+        this.root = root; // Id of the root div element
         this.config = {
             // Default config for the Assistant class
             name: "Leah",
+            // Default answer - no matching skill
             response: {
-                // Default answer - no matching skill
-                text: "I don't know what to say :(",
+                text: "Sorry, I don't know what to say. :(",
                 extra: "",
             },
+            // Welcome message - triggers automatically on load
+            welcome: {
+                text: `Hi, ask me anything!`,
+                extra: "",
+            },
+            // To disable:
+            //welcome: false,
+            // Delay before the Assistant answers, even if the response is ready
             delay: 500,
             speech: {
                 enabled: true,
                 rate: 1,
                 volume: 1,
+                // Set the first as default voice (usually device/OS dependent, not browser)
                 voice: 0,
             },
             // Element IDs
             elements: {
+                header: "thvxt-chat-header",
                 thinker: "thvxt-chat-thinker",
                 messageList: "thvxt-chat-messagelist",
                 inputForm: "thvxt-chat-inputarea",
@@ -52,6 +62,8 @@ class Assistant {
                 userMessage: "revealUser",
                 assistantMessage: "revealAssistant"
             },
+            // Enable saving and loading the settings from the browser
+            persistSettings: true,
             // Overwrite defaults
             // NOTE: If you overwrite part of the default config object,
             //       you have to include ALL of it's properties
@@ -68,14 +80,7 @@ class Assistant {
         // Speech Synthetizer and available voices to choose from
         this.synth = window.speechSynthesis;
         this.voices = [];
-        // Set the first as default voice (usually device/OS dependent, not browser)
-        this.selectedVoice = 0;
     }
-
-    // TODO: save some config to cache/localstorage - saveSettings, loadSettings functions
-    // ...
-
-
 
     /**
      * Initialize the Assistant: set up the HTML, precache frequently used objects and keep them updated. 
@@ -83,33 +88,48 @@ class Assistant {
      */
     init() {
         //console.log("Initializing assistant");
+        // Attempt to load any saved settings from LocalStorage
+        if (this.config.persistSettings) {
+            this.loadSettings();
+            // Add an event handler to save settings before closing or reloading the tab
+            window.addEventListener("beforeunload", (e) => {
+                this.saveSettings();
+            })
+        }
+
         // Set up the HTML
         let chatFrame = this.parseHTML(
             `<div class="thvxt-chat-frame">
-                <ul id="${this.config.elements.messageList}" class="thvxt-chat-messageList"></ul>
-                <div id="${this.config.elements.settingsDiv}" class="thvxt-chat-settings">
-                    <h2>Settings</h2>
-                    <div>
-                        <h3>Voice</h3>
-                        <select id="${this.config.elements.voiceSelect}" class="thvxt-chat-voiceSelect">
-                            <option default selected>-- loading .. --</selected>
-                        </select>
-                    </div>
-                    <div>
-                        <h3>Speech volume</h3>
-                        <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value=${this.config.speech.volume}" 
-                            min="0" max="2" step="0.1">
-                    </div>
-                    <div>
-                        <h3>Speech rate</h3>
-                        <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
-                            min="0.5" max="1.5" step="0.1">
-                    </div>
-                    <div>
-                        <p>Made by <a href="https://github.com/thavixt" target="_blank">thavixt@github</a>.<p>
-                        <small>2018 &copy; Komlósi Péter</small>
-                        <br><br>
-                        <p>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> and <a href="https://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>, licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.</p>
+                <div class="thvxt-chat-header" id="${this.config.elements.header}">
+                    Your assistant - ${this.config.name}
+                </div>
+                <div class="thvxt-chat-content">
+                    <ul id="${this.config.elements.messageList}" class="thvxt-chat-messageList"></ul>
+                    <div id="${this.config.elements.settingsDiv}" class="thvxt-chat-settings">
+                        <h2>Settings</h2>
+                        <div>
+                            <h3>Voice</h3>
+                            <select id="${this.config.elements.voiceSelect}" class="thvxt-chat-voiceSelect">
+                                <option default selected>-- loading .. --</selected>
+                            </select>
+                        </div>
+                        <div>
+                            <h3>Speech volume</h3>
+                            <input id="${this.config.elements.voiceVolume}" class="thvxt-chat-voiceVolume" type="range" value=${this.config.speech.volume}" 
+                                min="0" max="2" step="0.1">
+                        </div>
+                        <div>
+                            <h3>Speech rate</h3>
+                            <input id="${this.config.elements.voiceRate}" class="thvxt-chat-voiceRate" type="range" value="${this.config.speech.rate}"
+                                min="0.5" max="1.5" step="0.1">
+                        </div>
+                        <hr class="thvxt-chat-settings-divider">
+                        <div class="thvxt-chat-credits">
+                            <p>Made by <a href="https://github.com/thavixt" target="_blank">thavixt@github</a>.<p>
+                            <small>2018 &copy; Komlósi Péter</small>
+                            <br><br>
+                            <p>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> and <a href="https://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>,<br>licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.</p>
+                        </div>
                     </div>
                 </div>
                 <form id="${this.config.elements.inputForm}" class="thvxt-chat-inputForm">
@@ -125,11 +145,18 @@ class Assistant {
                     </button>
                 </form>
             </div>`);
-        document.getElementById(this.root).appendChild(chatFrame);
+        let root = document.getElementById(this.root);
+        root.innerHTML = "";
+        root.appendChild(chatFrame);
 
         // Keep location info updated every 30s
         this.updateLocation();
         setInterval(this.updateLocation.bind(this), 60000);
+
+
+        // User input submit
+        document.getElementById(this.config.elements.header)
+            .addEventListener("click", this.toggleFrame.bind(this));
 
         // User input submit
         document.getElementById(this.config.elements.inputForm)
@@ -146,7 +173,7 @@ class Assistant {
             let selectList = document.getElementById(this.config.elements.voiceSelect);
             selectList.innerHTML = "";
             // Append all voice options
-            let currentIndex = this.selectedVoice;
+            let currentIndex = this.config.speech.voice;
             this.voices.map((el, i) => {
                 let selected = (i == currentIndex) ? "selected" : "";
                 let option = this.parseHTML(
@@ -157,7 +184,7 @@ class Assistant {
             // Event handler for changing the active voice from the select list
             selectList.addEventListener("change", (e) => {
                 let target = e.target;
-                this.selectedVoice = target.options[target.selectedIndex].dataset.index;
+                this.config.speech.voice = target.options[target.selectedIndex].dataset.index;
             });
         };
         // Speech volume change handler
@@ -175,18 +202,57 @@ class Assistant {
         document.getElementById(this.config.elements.settingsButton)
             .addEventListener("click", (e) => {
                 let settingsDiv = document.getElementById(this.config.elements.settingsDiv);
+                let messageList = document.getElementById(this.config.elements.messageList);
                 // Check if the settings div is open at the momemt
                 let isSettingsOpen = document.getElementById(this.config.elements.settingsDiv)
                     .classList.contains("show");
                 // Toggle div
                 if (isSettingsOpen) {
                     settingsDiv.classList.remove("show");
+                    messageList.classList.remove("hide");
                     this.enableInput(true);
                 } else {
                     this.enableInput(false);
                     settingsDiv.classList.add("show");
+                    messageList.classList.add("hide");
                 }
             });
+
+        // Welcome message
+        if (this.config.welcome) {
+            this.reply(this.config.welcome);
+        }
+    }
+
+
+    /**
+     * Save the current config to LocalStorage.
+     * @returns {Object|Boolean}
+     * @memberof Assistant
+     */
+    loadSettings() {
+        let loadedConfig = JSON.parse(localStorage.getItem('thvxt-assistant'));
+        if (!loadedConfig) {
+            //console.log("No saved settings found.");
+            return false;
+        } else {
+            this.config.speech = {
+                ...loadedConfig,
+                // Set speech volume to 0 if the provided config disabled speech initially
+                volume: this.config.speech.enabled ? loadedConfig.enabled : 0
+            };
+            //console.log("Settings loaded from a previous session.");
+            return true;
+        }
+    }
+
+    /**
+     * Load a previously saved config from LocalStorage.
+     * @memberof Assistant
+     */
+    saveSettings() {
+        localStorage.setItem('thvxt-assistant', JSON.stringify(this.config.speech));
+        //console.log("Settings saved.");
     }
 
 
@@ -202,6 +268,13 @@ class Assistant {
         return time;
     }
 
+    /**
+     * Parser an HTML string and return it as an HTMLTextNode.
+     * The provided HTML must have a parent element (like JSX).
+     * @param {string} domstring 
+     * @returns {Node}
+     * @memberof Assistant
+     */
     parseHTML(domstring) {
         let html = new DOMParser().parseFromString(domstring, 'text/html');
         return html.body.childNodes[0];
@@ -236,6 +309,27 @@ class Assistant {
 
 
     /**
+     * Open or close the chat window. 
+     * @memberof Assistant
+     */
+    toggleFrame() {
+        let frame = document.getElementsByClassName("thvxt-chat-frame")[0];
+        let isFrameMinimized = frame.classList.contains("minimized");
+        // Toggle div
+        if (isFrameMinimized) {
+            document.getElementById(this.root).style.maxHeight = "initial";
+            frame.classList.remove("minimized");
+            this.enableInput(true);
+        } else {
+            document.getElementById(this.config.elements.settingsDiv).classList.remove("show");
+            document.getElementById(this.config.elements.messageList).classList.remove("hide");
+            this.enableInput(false);
+            document.getElementById(this.root).style.maxHeight = "2em";
+            frame.classList.add("minimized");
+        }
+    }
+
+    /**
      * Toogle inputs or return their state.
      * @param {Boolean} [bool] 
      * @returns {Boolean}
@@ -250,15 +344,15 @@ class Assistant {
         document.getElementById(this.config.elements.userInput).disabled = !bool;
         document.getElementById(this.config.elements.sendButton).disabled = !bool;
         document.getElementById(this.config.elements.recordButton).disabled = !bool;
-        document.getElementById(this.config.elements.userInput).focus();
+        //document.getElementById(this.config.elements.userInput).focus();
         return bool;
     }
 
 
     /**
      * Forward a user-initiated input to the Assistant. 
-     * @param {any} e 
-     * @returns 
+     * @param {Event} e 
+     * @returns {Promise}
      * @memberof Assistant
      */
     handleInput(e) {
@@ -281,7 +375,6 @@ class Assistant {
         return this.process(inputText)
             .then(reply => {
                 this.thinking(false);
-                this.addAssistantReply(reply);
                 this.enableInput(true);
             });
 
@@ -359,11 +452,12 @@ class Assistant {
 
     /**
      * Process an input and return a reply string
-     * @param {string} sentence 
+     * @param {string} sentence
+     * @param {Boolean} justReturn use this for tests!
      * @returns {string}
      * @memberof Assistant
      */
-    process(sentence) {
+    process(sentence, justReturn) {
         // Save input to 'memory' (up to 10)
         this.previousInputs.history.unshift(sentence);
         if (this.previousInputs.history.length > 10) {
@@ -382,12 +476,23 @@ class Assistant {
                     // Add a delay (pass the result through this Promise!)
                     .then((result) => new Promise(resolve => setTimeout(() => resolve(result), delay)))
                     // Return the computed response
-                    .then((response) => this.reply({
-                        success: true,
-                        ...response,
-                        matchedSkill: skill,
-                        default: false
-                    }));
+                    .then((response) => {
+                        if (justReturn) {
+                            return {
+                                success: true,
+                                ...response,
+                                matchedSkill: skill,
+                                default: false
+                            };
+                        } else {
+                            this.reply({
+                                success: true,
+                                ...response,
+                                matchedSkill: skill,
+                                default: false
+                            });
+                        }
+                    });
             }
         }
         // Default response 
@@ -396,8 +501,12 @@ class Assistant {
             success: false,
             default: true
         }
-        return new Promise(resolve => setTimeout(() => resolve(this.reply(defaultReply)), this.config.delay));
-        return this.reply(defaultReply);
+        if (justReturn) {
+            return new Promise(resolve => resolve(defaultReply));
+        } else {
+            return new Promise(resolve => setTimeout(() => resolve(this.reply(defaultReply)), this.config.delay));
+        }
+
     }
 
 
@@ -408,8 +517,7 @@ class Assistant {
      * @memberof Assistant
      */
     reply(response) {
-        //console.log("Raw response: ", response);
-        let sentence = response.text;
+        this.addAssistantReply(response);
         if (this.config.speech.enabled) {
             this.speak(response.text);
         }
@@ -434,7 +542,7 @@ class Assistant {
         // Set options
         msg.volume = this.config.speech.volume;
         msg.rate = this.config.speech.rate;
-        msg.voice = this.voices[this.selectedVoice];
+        msg.voice = this.voices[this.config.speech.voice];
         //console.log(msg); 
         setTimeout(() => {
             window.speechSynthesis.speak(msg);
@@ -491,7 +599,7 @@ class Assistant {
         msgList.scrollTop = msgList.scrollHeight;
         // Remove the class responsible for animation
         setTimeout(() => {
-            newMsg.classList.remove(this.config.animations.assistantMessage);
+            newMsg.classList.remove(this.config.animations.userMessage);
         }, 500);
     }
 
